@@ -5,8 +5,6 @@ LIBLINEAR=$PROJECTROOT/lib/liblinear
 DATADIR=$PROJECTROOT
 DBDIR=/path/to/your/opentable/db
 
-PYTHONPATH="$PYTHONPATH:$PROJECTROOT/lib/install/lib/python2.5/site-packages/"
-
 # Generate the data (preprocessing and reducing the dictionary size to DICTSIZE)
 # Note if DICTSIZE=0, the dictionary contains all the words
 DICTSIZE=5000

@@ -11,12 +11,8 @@ make && make install
 # make the Python
 cd python
 python setup.py build
-python setup.py test
-mkdir -p ../../install//lib/python2.5/site-packages/
-PYTHONPATH=$PYTHONPATH:../../install/lib/python2.5/site-packages/ python setup.py install --prefix=../../install/
-python setup.py install --prefix=../../install/
 
 # Link the python lib up with our code
 cd ../../..
 cd src
-ln -s ../lib/protobuf/python/build/lib.*/google
+ln -s ../lib/protobuf/python/build/lib/google

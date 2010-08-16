@@ -23,10 +23,6 @@ found in this document.
 
 Two installation scripts are provided, and they should be run in order:
 
-Note that if your Python is not 2.5, you should edit
-./script/install-prototype-buffers-locally.sh to give your correct Python
-major version number.
-
 Install libraries:
 
 sh ./script/install-prototype-buffers-locally.sh
