@@ -1,0 +1,83 @@
+----------------------------------------------------------------- 
+TEXT PREPROCESSOR AND BASELINE CLASSIFIER 
+Universite de Montreal - NetScale Team
+----------------------------------------------------------------- 
+
+Note: this package is highly inspired by the package released by
+Stanford team in early July 2010. Major changes are a slightly more
+advanced text preprocessing and the replacement of libsvm by liblinear
+(faster).
+
+
+1. Overview
+----------------------------------------------------------------- 
+
+This file details how to install the sentiment classifiers in this
+package.  To do so, you will need to install google protocol buffers
+and liblinear locally.  Scripts are provided to configure and compile
+both of these libraries, and instructions on how to compile them are
+found in this document.
+
+2. 3rd Party Libraries
+-----------------------------------------------------------------
+
+Two installation scripts are provided, and they should be run in order:
+
+Install libraries:
+
+sh ./script/install-prototype-buffers-locally.sh
+sh ./script/install-liblinear-locally.sh
+
+Perform an additional code-generation step:
+
+sh ./script/gen-protobuf-code.sh
+
+3.  Generating preprocessed data files
+-----------------------------------------------------------------
+
+If the above steps occurred without error, you should be able to
+generate the preprocessed data with line on the shell:
+
+sh ./script/preprocess-and-split-data.sh
+
+You must edit the constants in this script to specify the location of
+the data.  It also allows you to control the train/test split, and the
+size of the BOW dictionary (Note that if you set the size of the
+vocabulary to 0 you will use all the terms -- no filtering).
+
+This script generates 4 files (in the package root):
+- testDict.txt: the features dictionary. The word on line corresponds
+  to the feature n. The 2nd column gives the word count of the word in
+  the whole database.
+- testData.feat: the whole OpenTable data preprocessed and written in
+  libsvm/svmlight format. The default encoding is binary based on
+  presence/absence of words. If one wants to use word counts instead,
+  please comment line 119 of dbToBow.py and uncomment line 121.
+- {train/test}.libsvm: a split of the previous file according to dimensions
+  given in the script.
+
+Remark: there is an option in the script (see included comments) which
+allows to generate files displaying the actual text of the reviews
+(after preprocessing and filtering) instead the BoW written in
+libsvm/svmlight format.
+
+
+3.  Training (and testing) classifiers
+-----------------------------------------------------------------
+
+We always train a multiclass SVM classifier (using Crammer & Singer
+formulation) with linear kernel (see doc in lib/liblinear for details).
+
+To train a classifier, simply run:
+sh ./script/train-and-test-svm.sh TRAIN_FILE TEST_FILE OUTPUT_FILE
+
+For example, to train a classifier on the preprocessed files generated in 2., do:
+sh ./script/train-and-test-svm.sh train.libsvm test.libsvm output
+
+In the script, you can specify the amount of labeled data the
+classifier can pick among TRAIN_FILE (default 100 examples), the
+number of train/test runs to perform (default 50) and the
+regularization parameter C (default 0.01).
+
+
+

@@ -1,0 +1,17 @@
+message Review {
+	required float overallRating = 1;
+	required float foodRating = 2;
+	required float ambianceRating = 3;
+	required float serviceRating = 4;
+	required float noiseRating = 5;
+	required string text = 6;
+}
+
+message Restaurant {
+	required uint32 id = 1;
+	repeated Review review = 2;
+}
+
+message RestaurantList {
+	repeated Restaurant restaurant = 1;
+}
