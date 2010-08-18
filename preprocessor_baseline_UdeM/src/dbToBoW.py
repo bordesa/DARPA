@@ -161,7 +161,10 @@ def gpbMain(dbFilenames, dictionaryOutFilename, dataOutFilename, numFeat):
     sortedCountList = sorted(fullDict.items(), 
                              key=operator.itemgetter(1),                             
                              reverse=True)
-    # get top numFeat words
+
+    # get top numFeat words (if numFeat==0, get them all)                                                                  
+    if numFeat==0:
+        numFeat=len(sortedCountList)
     topCountList = sortedCountList[0:numFeat]
     topWordList =  [o[0] for o in topCountList]
     
