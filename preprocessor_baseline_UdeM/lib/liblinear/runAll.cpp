@@ -361,9 +361,14 @@ int main(int argc, char **argv)
   std::vector<double> train_errors(nb_runs);
   double trn_mean=0;
   double tst_mean=0;
+  int *start = NULL;
+  start = Malloc(int,nb_runs); 
 
 
   // perform runs
+  for (int run=0; run<nb_runs; run++)
+      start[run] = (rand() % (prob->l-trnsz));
+
   for (int run=0; run<nb_runs; run++)
     {
 
@@ -381,9 +386,8 @@ int main(int argc, char **argv)
       else
 	{
 	  // select examples
-	  int start= (rand() % (prob->l-trnsz));
-	  fprintf(stderr,"\nRun %d (from %d to %d)\n", run, start, start+trnsz-1);
-	  struct problem* subprob=extract_subprob(prob, start, trnsz);
+	  fprintf(stderr,"\nRun %d (from %d to %d)\n", run, start[run], start[run]+trnsz-1);
+	  struct problem* subprob=extract_subprob(prob, start[run], trnsz);
 	  
 	  //train
 	  model_=train(subprob, &param);
