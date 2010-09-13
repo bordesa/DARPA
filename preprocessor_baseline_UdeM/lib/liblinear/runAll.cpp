@@ -26,6 +26,7 @@ void exit_with_help()
 	"	5 -- L1-regularized L2-loss support vector classification\n"
 	"	6 -- L1-regularized logistic regression\n"
 	"-c cost : set the parameter C (default 1)\n"
+	"-b probability_estimates: whether to output probability estimates, 0 or 1 (default 0)\n"
 	"-e epsilon : set tolerance of termination criterion\n"
 	"	-s 0 and 2\n" 
 	"		|f'(w)|_2 <= eps*min(pos,neg)/l*|f'(w0)|_2,\n" 
@@ -40,8 +41,8 @@ void exit_with_help()
 	"-wi weight: weights adjust the parameter C of different classes (see README for details)\n"
 	"-v n: n-fold cross validation mode\n"
 	"-q : quiet mode (no outputs)\n"
-	"-l : ......... \n"
-	"-r : ......... \n"
+	"-l : size of the training subset (default 1000)\n"
+	"-r : number of runs to perform (default 1)\n"
 	);
 	exit(1);
 }
@@ -84,6 +85,7 @@ struct problem* prob;
 struct problem* tprob;
 
 struct model* model_;
+int flag_predict_probability=0;
 
 FILE *output;
 
@@ -240,6 +242,10 @@ void parse_command_line(int argc, char **argv)
 		  exit_with_help();
 		switch(argv[i-1][1])
 		  {
+		  case 'b':
+		    flag_predict_probability = atoi(argv[i]);
+		    break;
+
 		  case 's':
 		    param.solver_type = atoi(argv[i]);
 		    break;
@@ -316,25 +322,62 @@ void parse_command_line(int argc, char **argv)
 	  }
 }
 
-
-double do_predict(const struct problem *test_prob, struct model* model_)
+// return classification error and mean squared error
+std::pair<double, double> do_predict(const struct problem *test_prob, struct model* model_)
 {
-  int correct = 0;
+  double mse = 0;
+  double clse=0;
   int total = 0;
+  double *prob_estimates=NULL;
+  int *labels=NULL;
+  int nr_class=get_nr_class(model_);
+  if(flag_predict_probability)
+    {
+      if(!check_probability_model(model_))
+	{
+	  fprintf(stderr, "probability output is only supported for logistic regression\n");
+	  exit(1);
+	}
+      
+      labels=(int *) malloc(nr_class*sizeof(int));
+      get_labels(model_,labels);
+      prob_estimates = (double *) malloc(nr_class*sizeof(double));
+    }
+
   int l = test_prob->l;
   int i = 0;
   for(i=0; i<l; i++)
     {
+      int predict_label = 0;
       int target_label=test_prob->y[i];
       feature_node *xi = test_prob->x[i];
-      int predict_label = predict(model_,xi);
-      
-      if(predict_label == target_label)
-	++correct;
-      ++total;
+      if(flag_predict_probability)
+	{
+	  int j;
+	  predict_label = predict_probability(model_,xi,prob_estimates);
+	  double predict_score=0;
+	  for(j=0;j<model_->nr_class;j++)
+	    predict_score+=prob_estimates[j]*labels[j];
+	  mse+=sqrt((predict_score - target_label)*(predict_score - target_label));
+	  if (predict_label!=target_label)
+	    clse++;
 	}
+      else
+	{
+	  predict_label = predict(model_,xi);
+	  mse+=sqrt((predict_label- target_label)*(predict_label- target_label));
+	  if (predict_label!=target_label)
+	    clse++;
+	}
+      ++total;
+    }
+  if(flag_predict_probability)
+    {
+      free(prob_estimates);
+      free(labels);
+    }
   //printf("Error = %g%% (%d/%d)\n",(double) (total-correct)/total*100,total-correct,total);
-  return (double) (total-correct)/total*100;
+  return std::make_pair(clse/total,mse/total) ;
 }
 
 
@@ -357,10 +400,12 @@ int main(int argc, char **argv)
     }
 	
 
-  std::vector<double> test_errors(nb_runs);
-  std::vector<double> train_errors(nb_runs);
+  std::vector< std::pair<double, double> > test_errors(nb_runs);
+  std::vector< std::pair<double, double> > train_errors(nb_runs);
   double trn_mean=0;
   double tst_mean=0;
+  double mse_trn_mean=0;
+  double mse_tst_mean=0;
   int *start = NULL;
   start = Malloc(int,nb_runs); 
 
@@ -399,33 +444,53 @@ int main(int argc, char **argv)
 	  free(subprob->x);
 	}
 
-      tst_mean+=test_errors[run];
-      printf("Test Error = %g%%\n",test_errors[run]);
-      trn_mean+=train_errors[run];
-      printf("Train Error = %g%%\n",train_errors[run]);
+      tst_mean+=test_errors[run].first;
+      printf("Test  ERROR = %g\n",test_errors[run].first);
+      trn_mean+=train_errors[run].first;
+      printf("Train ERROR = %g\n",train_errors[run].first);
+
+      mse_tst_mean+=test_errors[run].second;
+      printf("Test  MSE = %g\n",test_errors[run].second);
+      mse_trn_mean+=train_errors[run].second;
+      printf("Train MSE = %g\n",train_errors[run].second);
 
       //destroy model
       free_and_destroy_model(&model_);
       destroy_param(&param);
       
     }
+  double trn_var=0;
+  double tst_var=0;
   tst_mean=tst_mean/nb_runs;
   trn_mean=trn_mean/nb_runs;
 
-  double trn_var=0;
-  double tst_var=0;
+  double mse_trn_var=0;
+  double mse_tst_var=0;
+  mse_tst_mean=mse_tst_mean/nb_runs;
+  mse_trn_mean=mse_trn_mean/nb_runs;
+
   for (int run=0; run<nb_runs; run++)
     {
-      tst_var+=(test_errors[run]-tst_mean)*(test_errors[run]-tst_mean);
-      trn_var+=(train_errors[run]-trn_mean)*(train_errors[run]-trn_mean);
+      tst_var+=(test_errors[run].first-tst_mean)*(test_errors[run].first-tst_mean);
+      trn_var+=(train_errors[run].first-trn_mean)*(train_errors[run].first-trn_mean);
+
+      mse_tst_var+=(test_errors[run].second-mse_tst_mean)*(test_errors[run].second-mse_tst_mean);
+      mse_trn_var+=(train_errors[run].second-mse_trn_mean)*(train_errors[run].second-mse_trn_mean); 
     }
   trn_var=sqrt(trn_var/nb_runs);
   tst_var=sqrt(tst_var/nb_runs);
+
+  mse_trn_var=sqrt(mse_trn_var/nb_runs);
+  mse_tst_var=sqrt(mse_tst_var/nb_runs);
   
   fprintf(stderr,"\nOVERALL TEST  ERROR on %d ex (%d runs): %g +/- %g\n", trnsz, nb_runs, tst_mean, tst_var);
   fprintf(stderr,"OVERALL TRAIN ERROR on %d ex (%d runs): %g +/- %g\n", trnsz, nb_runs, trn_mean, trn_var);
 
-  fprintf(output,"%d %g %g %g %g\n", trnsz, trn_mean, trn_var, tst_mean, tst_var);
+  fprintf(stderr,"\nOVERALL TEST  MSE on %d ex (%d runs): %g +/- %g\n", trnsz, nb_runs, mse_tst_mean, mse_tst_var);
+  fprintf(stderr,"OVERALL TRAIN MSE on %d ex (%d runs): %g +/- %g\n", trnsz, nb_runs, mse_trn_mean, mse_trn_var);
+
+  fprintf(output,"%d %g %g %g %g %g %g %g %g\n", trnsz, trn_mean, trn_var, tst_mean, tst_var,
+	  mse_trn_mean, mse_trn_var, mse_tst_mean, mse_tst_var);
 
   //clean all
   free(prob->y);
