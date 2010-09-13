@@ -322,10 +322,10 @@ void parse_command_line(int argc, char **argv)
 	  }
 }
 
-// return classification error and mean squared error
+// return classification error and the normalized difference between predicted and true sentiment
 std::pair<double, double> do_predict(const struct problem *test_prob, struct model* model_)
 {
-  double mse = 0;
+  double acc = 0;
   double clse=0;
   int total = 0;
   double *prob_estimates=NULL;
@@ -358,14 +358,16 @@ std::pair<double, double> do_predict(const struct problem *test_prob, struct mod
 	  double predict_score=0;
 	  for(j=0;j<model_->nr_class;j++)
 	    predict_score+=prob_estimates[j]*labels[j];
-	  mse+=sqrt((predict_score - target_label)*(predict_score - target_label));
+	  double acc_max= fabs(predict_score-3)+2;
+	  acc+=acc_max-sqrt((predict_score - target_label)*(predict_score - target_label))/acc_max;
 	  if (predict_label!=target_label)
 	    clse++;
 	}
       else
 	{
 	  predict_label = predict(model_,xi);
-	  mse+=sqrt((predict_label- target_label)*(predict_label- target_label));
+	  double acc_max= fabs(predict_label-3)+2;
+	  acc+=acc_max-sqrt((predict_label - target_label)*(predict_label - target_label))/acc_max;
 	  if (predict_label!=target_label)
 	    clse++;
 	}
@@ -377,7 +379,7 @@ std::pair<double, double> do_predict(const struct problem *test_prob, struct mod
       free(labels);
     }
   //printf("Error = %g%% (%d/%d)\n",(double) (total-correct)/total*100,total-correct,total);
-  return std::make_pair(clse/total,mse/total) ;
+  return std::make_pair(clse/total,acc/total) ;
 }
 
 
@@ -445,14 +447,14 @@ int main(int argc, char **argv)
 	}
 
       tst_mean+=test_errors[run].first;
-      printf("Test  ERROR = %g\n",test_errors[run].first);
+      printf("Test  classification ERROR = %g\n",test_errors[run].first);
       trn_mean+=train_errors[run].first;
-      printf("Train ERROR = %g\n",train_errors[run].first);
+      printf("Train classification ERROR = %g\n",train_errors[run].first);
 
       mse_tst_mean+=test_errors[run].second;
-      printf("Test  MSE = %g\n",test_errors[run].second);
+      printf("Test  normalized ACCURACY (ET requirement) = %g\n",test_errors[run].second);
       mse_trn_mean+=train_errors[run].second;
-      printf("Train MSE = %g\n",train_errors[run].second);
+      printf("Train normalized ACCURACY (ET requirement) = %g\n",train_errors[run].second);
 
       //destroy model
       free_and_destroy_model(&model_);
@@ -486,8 +488,8 @@ int main(int argc, char **argv)
   fprintf(stderr,"\nOVERALL TEST  ERROR on %d ex (%d runs): %g +/- %g\n", trnsz, nb_runs, tst_mean, tst_var);
   fprintf(stderr,"OVERALL TRAIN ERROR on %d ex (%d runs): %g +/- %g\n", trnsz, nb_runs, trn_mean, trn_var);
 
-  fprintf(stderr,"\nOVERALL TEST  MSE on %d ex (%d runs): %g +/- %g\n", trnsz, nb_runs, mse_tst_mean, mse_tst_var);
-  fprintf(stderr,"OVERALL TRAIN MSE on %d ex (%d runs): %g +/- %g\n", trnsz, nb_runs, mse_trn_mean, mse_trn_var);
+  fprintf(stderr,"\nOVERALL TEST  normalized ACCURACY (ET requirement) on %d ex (%d runs): %g +/- %g\n", trnsz, nb_runs, mse_tst_mean, mse_tst_var);
+  fprintf(stderr,"OVERALL TRAIN normalized ACCURACY (ET requirement) on %d ex (%d runs): %g +/- %g\n", trnsz, nb_runs, mse_trn_mean, mse_trn_var);
 
   fprintf(output,"%d %g %g %g %g %g %g %g %g\n", trnsz, trn_mean, trn_var, tst_mean, tst_var,
 	  mse_trn_mean, mse_trn_var, mse_tst_mean, mse_tst_var);
