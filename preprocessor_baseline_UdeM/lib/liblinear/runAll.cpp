@@ -409,16 +409,8 @@ int main(int argc, char **argv)
   double mse_trn_mean=0;
   double mse_tst_mean=0;
   int *start = NULL;
-  start = Malloc(int,nb_runs); 
-
 
   // perform runs
-  for (int run=0; run<nb_runs; run++)
-    {
-      if ((trnsz<prob->l) && (trnsz>0))
-        start[run] = (rand() % (prob->l-trnsz));
-    }
-
   for (int run=0; run<nb_runs; run++)
     {
 
@@ -435,6 +427,13 @@ int main(int argc, char **argv)
 	}
       else
 	{
+          // select all the splits before optimizing
+          if(run == 0)
+            {
+              start = Malloc(int,nb_runs); 
+              for (int run2=0; run2<nb_runs; run2++)
+                start[run2] = (rand() % (prob->l-trnsz));
+            }
 	  // select examples
 	  fprintf(stderr,"\nRun %d (from %d to %d)\n", run, start[run], start[run]+trnsz-1);
 	  struct problem* subprob=extract_subprob(prob, start[run], trnsz);
