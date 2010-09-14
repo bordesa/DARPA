@@ -414,7 +414,10 @@ int main(int argc, char **argv)
 
   // perform runs
   for (int run=0; run<nb_runs; run++)
-      start[run] = (rand() % (prob->l-trnsz));
+    {
+      if ((trnsz<prob->l) && (trnsz>0))
+        start[run] = (rand() % (prob->l-trnsz));
+    }
 
   for (int run=0; run<nb_runs; run++)
     {
