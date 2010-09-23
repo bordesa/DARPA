@@ -360,7 +360,7 @@ std::pair<double, double> do_predict(const struct problem *test_prob, struct mod
 	    predict_score+=prob_estimates[j]*labels[j];
 	  //double acc_max= fabs(target_label-3)+2;
 	  //acc+=(acc_max-sqrt((predict_score - target_label)*(predict_score - target_label)))/acc_max;
-	  acc += (predict_score - target_label) * (predict_score - target_label)
+	  acc += (predict_score - target_label) * (predict_score - target_label);
 	  if (predict_label!=target_label)
 	    clse++;
 	}
@@ -369,7 +369,7 @@ std::pair<double, double> do_predict(const struct problem *test_prob, struct mod
 	  predict_label = predict(model_,xi);
 	  //double acc_max= fabs(target_label-3)+2;
 	  //acc+=(acc_max-sqrt((predict_label - target_label)*(predict_label - target_label)))/acc_max;
-          acc += (predict_label - target_label) * (predict_label - target_label)
+          acc += (predict_label - target_label) * (predict_label - target_label);
           if (predict_label!=target_label)
 	    clse++;
 	}
