@@ -19,7 +19,7 @@ def svm_read_problem(data_file_name):
 		xi = {}
 		for e in features.split():
 			ind, val = e.split(":")
-			xi[int(ind)] = float(val)
+			xi[int(ind)+1] = float(val)
 		prob_y += [int(label)]
 		prob_x += [xi]
 	return (prob_y, prob_x)
@@ -34,12 +34,11 @@ def svm_read_problem_vectors(data_file_name):
 	prob_x = []
 	for line in open(data_file_name):
 		# In case an instance with all zero features
-		if len(line) == 1: line += ['']
 		features = line
 		xi = {}
 		for e in features.split():
 			ind, val = e.split(":")
-			xi[int(ind)] = float(val)
+			xi[int(ind)+1] = float(val)
 		prob_x += [xi]
 	return prob_x
 
@@ -248,9 +247,12 @@ def predict(y, x, m, options=""):
 
 def predict_online(y, xdata, m, options=""):
 	"""
-	predict(y, x, m [, "options"]) -> (p_labels, p_acc, p_vals)
+	predict_online(y, xdata, m [, "options"]) -> (p_labels, p_acc, p_vals)
 
-	Predict data (y, x) with the SVM model m. 
+	Predict data (y, x) with the SVM model m. Contrary to
+	predict(), this function does not need all the data to be
+	stored in memory but load it on the fly.
+
 	"options": 
 	    -b probability_estimates: whether to predict probability estimates, 
 	        0 or 1 (default 0);
@@ -296,18 +298,19 @@ def predict_online(y, xdata, m, options=""):
 		ex_cnt=0
 		# read the data file online
 		for line in open(xdata[0]):
+			# check if one should predict for this line
 			if ex_cnt in xdata[1]:
+				# load the x vector
 				xi = {}
 				for e in line.split():
 					ind, val = e.split(":")
-					xi[int(ind)] = float(val)
+					xi[int(ind)+1] = float(val)
 
 				xi, idx = gen_feature_nodearray(xi, feature_max=nr_feature)
 
-		#		print ex_cnt, xi
+				# predict and store prediction in pred_labels
 				xi[-2] = biasterm
 				label = liblinear.predict_probability(m, xi, prob_estimates)
-		#		print label
 				values = prob_estimates[:nr_class]
 				pred_values += [values]
 				esp=0
@@ -315,7 +318,6 @@ def predict_online(y, xdata, m, options=""):
 					esp+=pp[0]*pp[1]
 				# pred_labels += [label] # predicting using Argmax(P(y|x))
 				pred_labels += [esp] # predicting using Exp(y*P(y|x)))
-		#		print esp
 			ex_cnt+=1
 	else:
 		if nr_class <= 2:
@@ -330,7 +332,7 @@ def predict_online(y, xdata, m, options=""):
 				xi = {}
 				for e in line.split():
 					ind, val = e.split(":")
-					xi[int(ind)] = float(val)
+					xi[int(ind)+1] = float(val)
 
 				xi, idx = gen_feature_nodearray(xi, feature_max=nr_feature)
 				xi[-2] = biasterm
@@ -341,9 +343,9 @@ def predict_online(y, xdata, m, options=""):
 			ex_cnt+=1
 	if len(y) == 0:
 		y = [0] * len(xdata[1])
+
 	ACC = evaluations(y, pred_labels)
-	l = len(y)
-	#print("Accuracy = %g%% (%d/%d)" % (ACC, int(l*ACC//100), l))
+	#print("Accuracy = %g%% (%d/%d)" % (ACC, int(l*ACC//100), len(y)))
 
 	return pred_labels, ACC, pred_values
 	

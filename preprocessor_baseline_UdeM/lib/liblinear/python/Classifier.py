@@ -3,12 +3,12 @@ from linearutil import *
 from numpy.random import shuffle
 
 # 
-def get_mse(preds, true_labels):
+def get_rmse(preds, true_labels):
     if len(true_labels)>0:
         res=0
         for pp in zip(preds, true_labels):
             res+=(pp[0]-pp[1])**2
-        return res/len(preds)
+        return math.sqrt(res/len(preds))
     return 1
 
 
@@ -29,6 +29,9 @@ def TrainAndOptimizeClassifer(TrainingData, ValidationData, verbose):
 
     TrainingProblem = problem(TrainingData[0],TrainingData[1])
 
+    print >> sys.stderr, "Training on %d ex"% len(TrainingData[0])
+    print >> sys.stderr, "Validating on %d ex"% len(ValidationData[0])
+
     print >> sys.stderr, "Performing line search to get the best C (%d steps)"% MAXSTEPS 
     while len(C_to_allstats) < MAXSTEPS:
         if Ccurrent not in C_to_allstats:
@@ -36,23 +39,23 @@ def TrainAndOptimizeClassifer(TrainingData, ValidationData, verbose):
             param = '-c %f -s 0 -q'% Ccurrent
             m=train(TrainingProblem, param)
             preds, acc, probas = predict(ValidationData[0], ValidationData[1], m , '-b 1')
-            C_to_allstats[Ccurrent] = get_mse(preds, ValidationData[0])
+            C_to_allstats[Ccurrent] = get_rmse(preds, ValidationData[0])
             Models[Ccurrent]=m
         if Cnew not in C_to_allstats:
             # Compute the validation statistics for the next C
             param = '-c %f -s 0 -q'% Cnew
             m=train(TrainingProblem, param)
             preds, acc, probas = predict(ValidationData[0], ValidationData[1], m , '-b 1')
-            C_to_allstats[Cnew] = get_mse(preds, ValidationData[0])
+            C_to_allstats[Cnew] = get_rmse(preds, ValidationData[0])
             Models[Cnew]=m
-          # If Cnew has a higher val mse than Ccurrent, then continue stepping in this direction
+          # If Cnew has a higher val rmse than Ccurrent, then continue stepping in this direction
         if C_to_allstats[Cnew] < C_to_allstats[Ccurrent]:
             if verbose: 
-                print >> sys.stderr, "\tvalmse[Cnew %f] = %f < valmse[Ccurrent %f] = %f" % (Cnew, C_to_allstats[Cnew], Ccurrent, C_to_allstats[Ccurrent])
+                print >> sys.stderr, "\tvalrmse[Cnew %f] = %f < valrmse[Ccurrent %f] = %f" % (Cnew, C_to_allstats[Cnew], Ccurrent, C_to_allstats[Ccurrent])
             if Cbest is None or C_to_allstats[Cnew] < C_to_allstats[Cbest]:
                 Cbest = Cnew
                 if verbose: 
-                    print >> sys.stderr, "\tNEW BEST: Cbest <= %f, valmse[Cbest] = %f" % (Cbest, C_to_allstats[Cbest])
+                    print >> sys.stderr, "\tNEW BEST: Cbest <= %f, valrmse[Cbest] = %f" % (Cbest, C_to_allstats[Cbest])
             Ccurrent = Cnew
             Cnew *= Cstepfactor
             if verbose: 
@@ -60,11 +63,11 @@ def TrainAndOptimizeClassifer(TrainingData, ValidationData, verbose):
         # Else, reverse the direction and reduce the step size by sqrt.
         else:
             if verbose: 
-                print >> sys.stderr, "\tvalmse[Cnew %f] = %f > valmse[Ccurrent %f] = %f" % (Cnew, C_to_allstats[Cnew], Ccurrent, C_to_allstats[Ccurrent])
+                print >> sys.stderr, "\tvalrmse[Cnew %f] = %f > valrmse[Ccurrent %f] = %f" % (Cnew, C_to_allstats[Cnew], Ccurrent, C_to_allstats[Ccurrent])
             if Cbest is None or C_to_allstats[Ccurrent] < C_to_allstats[Cbest]:
                 Cbest = Ccurrent
                 if verbose: 
-                    print >> sys.stderr, "\tCbest <= %f, valmse[Cbest] = %f" % (Cbest, C_to_allstats[Cbest])
+                    print >> sys.stderr, "\tCbest <= %f, valrmse[Cbest] = %f" % (Cbest, C_to_allstats[Cbest])
             Cstepfactor = 1. / math.sqrt(Cstepfactor)
             Cnew = Ccurrent * Cstepfactor
             if verbose: 
@@ -74,11 +77,11 @@ def TrainAndOptimizeClassifer(TrainingData, ValidationData, verbose):
     allC.sort()
     if verbose: 
         for C in allC:
-            print >> sys.stderr, "\tvalmse[C %f] = %f" % (C, C_to_allstats[C]),
+            print >> sys.stderr, "\tvalrmse[C %f] = %f" % (C, C_to_allstats[C]),
             if C == Cbest: print >> sys.stderr, " *best*"
             else: print >> sys.stderr, ""
     else:
-        print >> sys.stderr, "\tBestC %f with Validation MSE = %f" % (Cbest, C_to_allstats[Cbest])
+        print >> sys.stderr, "\tBestC %f with Validation RMSE = %f" % (Cbest, C_to_allstats[Cbest])
 
 
     return Models[Cbest]
@@ -92,9 +95,9 @@ def Classifier(model, TestData, prefix):
     print >> sys.stderr, "Testing on %d ex"% len(TestData[1])   
     preds, acc, probas = predict(TestData[0], TestData[1], model , '-b 1')
     
-    # compute mse (1 if no test labels given) and save predictions
-    mse=get_mse(preds, TestData[0])
-    print >> sys.stderr, "\tTest MSE = %f" % mse    
+    # compute rmse (1 if no test labels given) and save predictions
+    rmse=get_rmse(preds, TestData[0])
+    print >> sys.stderr, "\tTest RMSE = %f" % rmse    
     pf=open(prefix+'.predictions', 'w')
     for pp in preds:
         pf.write(str(pp)+'\n')
@@ -116,12 +119,13 @@ def loadTrainDataset(task, labelFile, vectorFile, trainIDXFile):
     TrainData=[[],[]]
     ValidationData=[[],[]]
     for i in range(len(prob_x)):
-        if i in idx:
-            TrainData[0] += [prob_y[i][task]]
-            TrainData[1] += [prob_x[i]]
-        else:
-            ValidationData[0] += [prob_y[i][task]]
-            ValidationData[1] += [prob_x[i]]
+        if prob_y[i][task]>=0: # do not test on unrated examples (label=-1) only valid for the "noise" task)
+            if i in idx:
+                TrainData[0] += [prob_y[i][task]]
+                TrainData[1] += [prob_x[i]]
+            else:
+                ValidationData[0] += [prob_y[i][task]]
+                ValidationData[1] += [prob_x[i]]
 
     return TrainData, ValidationData
 
@@ -129,14 +133,18 @@ def loadTrainDataset(task, labelFile, vectorFile, trainIDXFile):
 def loadTestDataset(task, labelFile, vectorFile):
     
     prob_x=svm_read_problem_vectors(vectorFile)
-    labels=[]
     if labelFile:
         assert(task!=None)
         prob_y=svm_read_problem_labels(labelFile)
-        for i in prob_y:
-            labels += [i[task]]
-            
-    return [labels, prob_x]
+        labels=[]
+        nprob_x=[]
+        for i in zip(prob_y, prob_x):
+            if i[0][task]>=0: # do not test on unrated examples (label=-1) only valid for the "noise" task)            
+                labels += [i[0][task]]
+                nprob_x+=[i[1]]
+        return [labels, nprob_x]
+    else:                        
+        return [[], prob_x]
 
 
 # parse command line arguments and call main function
@@ -161,4 +169,4 @@ if __name__ == "__main__":
     del ValidationData
        
     TestData = loadTestDataset(TaskIndex, TestLabels, TestVectors)
-    Classifier(best_classifier, TestData, ''+TestVectors[:TestVectors[3:].find('.')])
+    Classifier(best_classifier, TestData, TestVectors.rpartition('/')[2].rpartition('.')[0]+'_task'+str(TaskIndex))
