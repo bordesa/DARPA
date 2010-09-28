@@ -35,14 +35,14 @@ def TrainAndOptimizeClassifer(TrainingData, ValidationData, verbose):
             # Compute the validation statistics for the current C
             param = '-c %f -s 0 -q'% Ccurrent
             m=train(TrainingProblem, param)
-            preds, acc, probas = predict(ValidationData[0], ValidationData[1], m , '-b 1')
+            preds, acc, probas = predict_online(ValidationData[0], ValidationData[1], m , '-b 1')
             C_to_allstats[Ccurrent] = get_mse(preds, ValidationData[0])
             Models[Ccurrent]=m
         if Cnew not in C_to_allstats:
             # Compute the validation statistics for the next C
             param = '-c %f -s 0 -q'% Cnew
             m=train(TrainingProblem, param)
-            preds, acc, probas = predict(ValidationData[0], ValidationData[1], m , '-b 1')
+            preds, acc, probas = predict_online(ValidationData[0], ValidationData[1], m , '-b 1')
             C_to_allstats[Cnew] = get_mse(preds, ValidationData[0])
             Models[Cnew]=m
           # If Cnew has a higher val mse than Ccurrent, then continue stepping in this direction
@@ -89,8 +89,8 @@ def TrainAndOptimizeClassifer(TrainingData, ValidationData, verbose):
 def Classifier(model, TestData, prefix):
 
     # perform predictions
-    print >> sys.stderr, "Testing on %d ex"% len(TestData[1])   
-    preds, acc, probas = predict(TestData[0], TestData[1], model , '-b 1')
+    print >> sys.stderr, "Testing on %d ex"% len(TestData[1][1])   
+    preds, acc, probas = predict_online(TestData[0], TestData[1], model , '-b 1')
     
     # compute mse (1 if no test labels given) and save predictions
     mse=get_mse(preds, TestData[0])
@@ -105,30 +105,39 @@ def Classifier(model, TestData, prefix):
 def loadTrainDataset(task, labelFile, vectorFile, trainIDXFile):
     
     prob_y=svm_read_problem_labels(labelFile)
-    prob_x=svm_read_problem_vectors(vectorFile)
-    assert(len(prob_x)==len(prob_y))
 
     idx=dict()
     for line in open(trainIDXFile):
         idx[int(line.split()[0])]=True
     
-
     TrainData=[[],[]]
-    ValidationData=[[],[]]
-    for i in range(len(prob_x)):
-        if i in idx:
-            TrainData[0] += [prob_y[i][task]]
-            TrainData[1] += [prob_x[i]]
-        else:
-            ValidationData[0] += [prob_y[i][task]]
-            ValidationData[1] += [prob_x[i]]
+    ValidationData=[[],[vectorFile, dict()]]
 
+    ex_cnt=0
+    for line in open(vectorFile):
+        if ex_cnt in idx:
+            TrainData[0] += [prob_y[ex_cnt][task]]
+            xi = {}
+            for e in line.split():
+                ind, val = e.split(":")
+                xi[int(ind)] = float(val)
+            TrainData[1] += [xi]
+        else:
+            ValidationData[0] += [prob_y[ex_cnt][task]]
+            ValidationData[1][1][ex_cnt] = True
+        ex_cnt+=1
+        
     return TrainData, ValidationData
 
 
 def loadTestDataset(task, labelFile, vectorFile):
     
-    prob_x=svm_read_problem_vectors(vectorFile)
+    idx=dict()
+    ex_cnt=0
+    for line in open(vectorFile):
+        idx[ex_cnt]=True
+        ex_cnt+=1
+
     labels=[]
     if labelFile:
         assert(task!=None)
@@ -136,7 +145,7 @@ def loadTestDataset(task, labelFile, vectorFile):
         for i in prob_y:
             labels += [i[task]]
             
-    return [labels, prob_x]
+    return [labels, [vectorFile, idx]]
 
 
 # parse command line arguments and call main function
@@ -157,8 +166,6 @@ if __name__ == "__main__":
 
     TrainingData, ValidationData = loadTrainDataset(TaskIndex, TrainLabels, TrainVectors, TrainIndices)
     best_classifier = TrainAndOptimizeClassifer(TrainingData, ValidationData, True)
-    del TrainingData
-    del ValidationData
-       
+        
     TestData = loadTestDataset(TaskIndex, TestLabels, TestVectors)
     Classifier(best_classifier, TestData, ''+TestVectors[:TestVectors[3:].find('.')])

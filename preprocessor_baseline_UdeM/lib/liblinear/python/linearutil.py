@@ -24,6 +24,39 @@ def svm_read_problem(data_file_name):
 		prob_x += [xi]
 	return (prob_y, prob_x)
 
+def svm_read_problem_vectors(data_file_name):
+	"""
+	svm_read_problem_vector(data_file_name) -> [x]
+
+	Read LIBSVM-format vector data from data_line
+	and return data instances x.
+	"""
+	prob_x = []
+	for line in open(data_file_name):
+		# In case an instance with all zero features
+		if len(line) == 1: line += ['']
+		features = line
+		xi = {}
+		for e in features.split():
+			ind, val = e.split(":")
+			xi[int(ind)] = float(val)
+		prob_x += [xi]
+	return prob_x
+
+
+def svm_read_problem_labels(data_file_name):
+	"""
+	svm_read_problem_labels(data_file_name) -> [y]
+
+	Read LIBSVM-format data from data_file_name and return labels y
+	"""
+	prob_y = []
+	for line in open(data_file_name):
+		line = line.split()
+		labels=[int(rating) for rating in line]
+		prob_y += [labels]
+	return prob_y
+
 def load_model(model_file_name):
 	"""
 	load_model(model_file_name) -> model
@@ -184,8 +217,12 @@ def predict(y, x, m, options=""):
 			xi[-2] = biasterm
 			label = liblinear.predict_probability(m, xi, prob_estimates)
 			values = prob_estimates[:nr_class]
-			pred_labels += [label]
 			pred_values += [values]
+			esp=0
+			for pp in zip(m.label, values):
+				esp+=pp[0]*pp[1]
+			# pred_labels += [label] # predicting using Argmax(P(y|x))
+			pred_labels += [esp] # predicting using Exp(y*P(y|x)))
 	else:
 		if nr_class <= 2:
 			nr_classifier = 1
@@ -203,7 +240,110 @@ def predict(y, x, m, options=""):
 		y = [0] * len(x)
 	ACC = evaluations(y, pred_labels)
 	l = len(y)
-	print("Accuracy = %g%% (%d/%d)" % (ACC, int(l*ACC//100), l))
+	#print("Accuracy = %g%% (%d/%d)" % (ACC, int(l*ACC//100), l))
+
+	return pred_labels, ACC, pred_values
+	
+
+
+def predict_online(y, xdata, m, options=""):
+	"""
+	predict(y, x, m [, "options"]) -> (p_labels, p_acc, p_vals)
+
+	Predict data (y, x) with the SVM model m. 
+	"options": 
+	    -b probability_estimates: whether to predict probability estimates, 
+	        0 or 1 (default 0);
+
+	The return tuple contains
+	p_labels: a list of predicted labels
+	p_acc: testing accuracy. 
+	p_vals: a list of decision values or probability estimates (if '-b 1' 
+	        is specified). If k is the number of classes, for decision values,
+	        each element includes results of predicting k binary-class
+	        SVMs. if k = 2 and solver is not MCSVM_CS, only one decision value 
+	        is returned. For probabilities, each element contains k values 
+	        indicating the probability that the testing instance is in each class.
+	        Note that the order of classes here is the same as 'model.label'
+	        field in the model structure.
+	"""
+	predict_probability = 0
+	argv = options.split()
+	i = 0
+	while i < len(argv):
+		if argv[i] == '-b':
+			i += 1
+			predict_probability = int(argv[i])
+		else:
+			raise ValueError("Wrong options")
+		i+=1
+
+	nr_class = m.get_nr_class()
+	nr_feature = m.get_nr_feature()
+	is_prob_model = m.is_probability_model()
+	bias = m.bias
+	if bias >= 0:
+		biasterm = feature_node(nr_feature+1, bias)
+	else:
+		biasterm = feature_node(-1, bias)
+	pred_labels = []
+	pred_values = []
+
+	if predict_probability:
+		if not is_prob_model:
+			raise TypeError('probability output is only supported for logistic regression')
+		prob_estimates = (c_double * nr_class)()
+		ex_cnt=0
+		# read the data file online
+		for line in open(xdata[0]):
+			if ex_cnt in xdata[1]:
+				xi = {}
+				for e in line.split():
+					ind, val = e.split(":")
+					xi[int(ind)] = float(val)
+
+				xi, idx = gen_feature_nodearray(xi, feature_max=nr_feature)
+
+		#		print ex_cnt, xi
+				xi[-2] = biasterm
+				label = liblinear.predict_probability(m, xi, prob_estimates)
+		#		print label
+				values = prob_estimates[:nr_class]
+				pred_values += [values]
+				esp=0
+				for pp in zip(m.label, values):
+					esp+=pp[0]*pp[1]
+				# pred_labels += [label] # predicting using Argmax(P(y|x))
+				pred_labels += [esp] # predicting using Exp(y*P(y|x)))
+		#		print esp
+			ex_cnt+=1
+	else:
+		if nr_class <= 2:
+			nr_classifier = 1
+		else:
+			nr_classifier = nr_class
+		dec_values = (c_double * nr_classifier)()
+		ex_cnt=0
+		# read the data file online
+		for line in open(xdata[0]):
+			if ex_cnt in xdata[1]:
+				xi = {}
+				for e in line.split():
+					ind, val = e.split(":")
+					xi[int(ind)] = float(val)
+
+				xi, idx = gen_feature_nodearray(xi, feature_max=nr_feature)
+				xi[-2] = biasterm
+				label = liblinear.predict_values(m, xi, dec_values)
+				values = dec_values[:nr_classifier]
+				pred_labels += [label]
+				pred_values += [values]
+			ex_cnt+=1
+	if len(y) == 0:
+		y = [0] * len(xdata[1])
+	ACC = evaluations(y, pred_labels)
+	l = len(y)
+	#print("Accuracy = %g%% (%d/%d)" % (ACC, int(l*ACC//100), l))
 
 	return pred_labels, ACC, pred_values
 	
