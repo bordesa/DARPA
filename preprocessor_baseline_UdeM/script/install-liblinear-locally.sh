@@ -2,7 +2,7 @@
 set -e
 
 PROJECTROOT=`dirname $0`/..
-cd $PROJECTROOT/lib/liblinear
+cd $PROJECTROOT/lib/liblinear/python
 
 # make the C++
 make
