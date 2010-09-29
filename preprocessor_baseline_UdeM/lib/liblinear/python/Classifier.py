@@ -4,6 +4,12 @@ from numpy.random import shuffle
 
 # 
 def get_rmse(preds, true_labels):
+    """
+    get_rmse(preds, true_labels): -> RMSE
+    
+    Compute the RMSE given the list of predictions 
+    and the true labels.
+    """
     if len(true_labels)>0:
         res=0
         for pp in zip(preds, true_labels):
@@ -13,7 +19,14 @@ def get_rmse(preds, true_labels):
 
 
 def TrainAndOptimizeClassifer(TrainingData, ValidationData, verbose):
+    """
+    TrainAndOptimizeClassifer(TrainingData, ValidationData, verbose) -> Classifier_model
 
+    Taking as input training data (stored in memory) and validation
+    data (stored in memory), this function performs a line search to
+    determine the best SVM C parameter and returns the best svm model
+    (i.e. the one with the lowest validation RMSE).
+    """
      #linesearch looking for the best C
     MAXSTEPS=10
     STEPFACTOR=10.
@@ -90,7 +103,14 @@ def TrainAndOptimizeClassifer(TrainingData, ValidationData, verbose):
 
 
 def Classifier(model, TestData, prefix):
-
+    """
+    Classifier(model, TestData, prefix) -> None
+    
+    Taking as input a classifier model and test data (stored in
+    memory), this function performs the model prediction for each test
+    example and saves them into a file termed after the provided
+    prefix.
+    """
     # perform predictions
     print >> sys.stderr, "Testing on %d ex"% len(TestData[1])   
     preds, acc, probas = predict(TestData[0], TestData[1], model , '-b 1')
@@ -106,7 +126,18 @@ def Classifier(model, TestData, prefix):
 
 
 def loadTrainDataset(task, labelFile, vectorFile, trainIDXFile):
-    
+    """
+    loadTrainDataset(task, labelFile, vectorFile, trainIDXFile) -> Training Data, Validation Data
+
+    Taking as input a large data set (given as a filename for labels
+    -- labelFile, and a filename for feature vectors -- vectorFile), a
+    task identifier (for OpenTable this is an integer between 0 and 4
+    as they are 5 rating per example) and a list of index
+    (trainIDXFile), this function returns a training set (containing
+    all the examples listed in trainIDXFile) labeled with the rating
+    of the identified task and a validation set containing the
+    remaining examples also labeled.
+    """
     prob_y=svm_read_problem_labels(labelFile)
     prob_x=svm_read_problem_vectors(vectorFile)
     assert(len(prob_x)==len(prob_y))
@@ -131,7 +162,15 @@ def loadTrainDataset(task, labelFile, vectorFile, trainIDXFile):
 
 
 def loadTestDataset(task, labelFile, vectorFile):
-    
+    """
+    loadTestDataset(task, labelFile, vectorFile) -> Test Data
+
+    Taking as input a data set (given as a filename for labels --
+    labelFile, and a filename for feature vectors -- vectorFile) and a
+    task identifier (for OpenTable this is an integer between 0 and 4
+    as they are 5 rating per example), this function returns a test
+    set. If no labelFile is given, an unlabeled test set is retruned.
+    """       
     prob_x=svm_read_problem_vectors(vectorFile)
     if labelFile:
         assert(task!=None)
@@ -147,7 +186,11 @@ def loadTestDataset(task, labelFile, vectorFile):
         return [[], prob_x]
 
 
-# parse command line arguments and call main function
+# parse command line arguments and call main function that will load
+# data and build train, validation and test set, train and optimize a
+# classifier using the train and the validation sets and save its test
+# predictions into a file.
+#
 if __name__ == "__main__":
 
     if len(sys.argv) < 6:
