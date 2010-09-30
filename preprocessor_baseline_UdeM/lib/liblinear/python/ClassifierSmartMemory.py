@@ -1,6 +1,5 @@
 import numpy, math, cPickle, sys
 from linearutil import *
-from numpy.random import shuffle
 
 # 
 def get_rmse(preds, true_labels):
