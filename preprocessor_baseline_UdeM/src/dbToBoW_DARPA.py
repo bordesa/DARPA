@@ -12,7 +12,6 @@
 
 from __future__ import with_statement
 import fileinput, sys, re, os, operator, itertools
-import numpy, cPickle
 from OpenTable_pb2 import *
 
 
@@ -116,22 +115,17 @@ def writeDataForRestaurants(dataFile, labelFile, wordList, restaurants):
                 labelFile.write(curLabel + "\n")
 
                 # iterate over wordlist so feature indices are in order
-                firstword_bool = True
                 for ind, curWord in enumerate(wordList):
                     if curWord in countDict:
-                        if firstword_bool:
-                             firstword_bool = False
-                        else:
-                             dataFile.write(" ")
                         # using binary presence, not counts
-                        dataFile.write("%d:1" % ind)
+                        dataFile.write("%d:1 " % ind)
                         # if you want to use word counts comment above and uncomment below
                         # dataFile.write(" %d:%d" % (ind, countDict[curWord]))
                 dataFile.write("\n")
     return None
 
 
-def gpbMain(dbFilenames, dictionaryOutFilename, dataOutFilename, labelOutFilename, numFeat):
+def gpbMain(dbFilenames, trainRestaurantIDList, dictionaryOutFilename, dataOutFilename, numFeat):
     """
     Main function for BoW conversion for GPB database.
 
@@ -144,8 +138,14 @@ def gpbMain(dbFilenames, dictionaryOutFilename, dataOutFilename, labelOutFilenam
     fullDictPtr = [dict()]
     # open output files
     dictFile = open(dictionaryOutFilename, 'w')
-    dataFile = open(dataOutFilename, 'w')
-    labelFile = open(labelOutFilename,'w')
+    trnDataFile = open(dataOutFilename+'-train.vec', 'w')
+    trnLabelFile = open(dataOutFilename+'-train.lab','w')
+    tstDataFile = open(dataOutFilename+'-test.vec', 'w')
+    tstLabelFile = open(dataOutFilename+'-test.lab','w')
+
+    trnIDs={}
+    for line in open(trainRestaurantIDList):
+        trnIDs[int(line.strip())]=True
 
     def processAndReturnRestaurants(dbName):
         """
@@ -164,7 +164,16 @@ def gpbMain(dbFilenames, dictionaryOutFilename, dataOutFilename, labelOutFilenam
     fullDict = fullDictPtr[0]
     restaurantLists = [processAndReturnRestaurants(dbName) for dbName in dbFilenames]
     allRestaurants = list(itertools.chain(*restaurantLists))
-    
+
+    # split in train and test
+    trnRestaurants = []
+    tstRestaurants = []
+    for restaurant in allRestaurants:
+        if restaurant.id in trnIDs:
+            trnRestaurants += [restaurant]
+        else:
+            tstRestaurants += [restaurant]
+
     # sort dict by frequency
     sortedCountList = sorted(fullDict.items(), 
                              key=operator.itemgetter(1),                             
@@ -179,7 +188,8 @@ def gpbMain(dbFilenames, dictionaryOutFilename, dataOutFilename, labelOutFilenam
     
     # TODO preprocess the reviews only once in the process (currently 2 times) to save time..
     # write datafile for this dir
-    writeDataForRestaurants(dataFile, labelFile, topWordList, allRestaurants)
+    writeDataForRestaurants(trnDataFile, trnLabelFile, topWordList, trnRestaurants)
+    writeDataForRestaurants(tstDataFile, tstLabelFile, topWordList, tstRestaurants)
     
     print "Words dictionary size: ", len(sortedCountList)
 
@@ -188,22 +198,23 @@ def gpbMain(dbFilenames, dictionaryOutFilename, dataOutFilename, labelOutFilenam
         dictFile.write("%s %s\n" %(w, fullDict[w]))
     
     # close output files
-    labelFile.close()
-    dataFile.close()
+    trnLabelFile.close()
+    trnDataFile.close()
+    tstLabelFile.close()
+    tstDataFile.close()
     dictFile.close()
-
 
 # parse command line arguments and call main function
 if __name__ == "__main__":
 
     if len(sys.argv) < 6:
-        print "Usage:", sys.argv[0], " dictionaryOutFile dataOutFile labelOutFile dictionarySize dbName1 [dbName2 [...]]"
+        print "Usage:", sys.argv[0], " dictionaryOutFile dataOutPrefix trainRestaurantIDList dictSize dbName1 [dbName2 [...]]"
         sys.exit(-1)
 
     dictionaryOutFile = sys.argv[1]
     dataOutFile = sys.argv[2]
-    labelOutFile = sys.argv[3]
+    trainRestaurantIDList = sys.argv[3]
     dictSize = sys.argv[4]
     dbNames = sys.argv[5:]
 
-    gpbMain( dbNames, dictionaryOutFile, dataOutFile, labelOutFile, int(dictSize))
+    gpbMain( dbNames, trainRestaurantIDList, dictionaryOutFile, dataOutFile, int(dictSize))
