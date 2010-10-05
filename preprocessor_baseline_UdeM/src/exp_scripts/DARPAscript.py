@@ -160,7 +160,7 @@ def OpenTableSDAEexp(ConfigFile = None, SavePath = '.'):
     """
     # Load the hyperparameters from the .conf file
     if ConfigFile != None:
-        PARAMS = read_hyperparameters_file('DARPA.conf')
+        PARAMS = read_hyperparameters_file(ConfigFile)
     else:
         PARAMS = read_hyperparameters_file('DARPA.conf')
     numpy.random.seed(PARAMS['seed'])
