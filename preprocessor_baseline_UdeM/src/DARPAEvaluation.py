@@ -20,7 +20,7 @@ def SampleStratified(rand,ListLabel,ClassifierTrainingSize):
     samples = []
     idxct = 0
     for i in OutList:
-        if i != -1
+        if i != -1:
             idx_class = sorted_idx[idxct: idxct + NbLab[i]]
             idx_class = idx_class[rand.permutation(len(idx_class))]
             if -1 in NbLab.keys():
