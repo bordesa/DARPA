@@ -65,12 +65,12 @@ def CreateIdxFile(listidx,path):
 def evalMain( FoldsNumber, ClassifierTrainingSize, DataPrefix, ModelPath, Seed ):
     numpy.random.seed(Seed)
     # learn the model
-    #OpenTableSDAEexp('DARPA.conf',ModelPath)
+    OpenTableSDAEexp(ModelPath+'DARPA.conf',ModelPath)
     # createrepresentations
-    #createvecfile(ModelPath+'/depth3',DataPrefix+ '-train_small.vec',3,ModelPath + '/DLrep_depth3_train.vec')
-    #createvecfile(ModelPath+'/depth3',DataPrefix+ '-test_small.vec',3,ModelPath + '/DLrep_depth3_test.vec')
-    #createvecfile(ModelPath+'/depth1',DataPrefix+ '-train_small.vec',1,ModelPath + '/DLrep_depth1_train.vec')
-    #createvecfile(ModelPath+'/depth1',DataPrefix+ '-test_small.vec',1,ModelPath + '/DLrep_depth1_test.vec')
+    createvecfile(ModelPath+'/depth3',DataPrefix+ '-train_small.vec',3,ModelPath + '/DLrep_depth3_train.vec')
+    createvecfile(ModelPath+'/depth3',DataPrefix+ '-test_small.vec',3,ModelPath + '/DLrep_depth3_test.vec')
+    createvecfile(ModelPath+'/depth1',DataPrefix+ '-train_small.vec',1,ModelPath + '/DLrep_depth1_train.vec')
+    createvecfile(ModelPath+'/depth1',DataPrefix+ '-test_small.vec',1,ModelPath + '/DLrep_depth1_test.vec')
 
     resbaseline = {}
     resshallow = {}
