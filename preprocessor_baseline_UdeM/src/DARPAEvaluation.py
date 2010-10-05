@@ -20,9 +20,13 @@ def SampleStratified(rand,ListLabel,ClassifierTrainingSize):
     samples = []
     idxct = 0
     for i in OutList:
-        idx_class = sorted_idx[idxct: idxct + NbLab[i]]
-        idx_class = idx_class[rand.permutation(len(idx_class))]
-        samples += list(idx_class[: numpy.ceil(NbLab[i] / float(len(ListLabel)) * ClassifierTrainingSize)])
+        if i != -1
+            idx_class = sorted_idx[idxct: idxct + NbLab[i]]
+            idx_class = idx_class[rand.permutation(len(idx_class))]
+            if -1 in NbLab.keys():
+                samples += list(idx_class[: numpy.ceil(NbLab[i] / float(len(ListLabel)-NbLab[-1]) * ClassifierTrainingSize)]) 
+            else:
+                samples += list(idx_class[: numpy.ceil(NbLab[i] / float(len(ListLabel)) * ClassifierTrainingSize)])
         idxct += NbLab[i]
     samples = numpy.asarray(samples)[rand.permutation(len(samples))]
     return list(samples[:ClassifierTrainingSize])
@@ -67,17 +71,17 @@ def evalMain( FoldsNumber, ClassifierTrainingSize, DataPrefix, ModelPath, Seed )
     # learn the model
     OpenTableSDAEexp(ModelPath+'DARPA.conf',ModelPath)
     # createrepresentations
-    createvecfile(ModelPath+'/depth3',DataPrefix+ '-train_small.vec',3,ModelPath + '/DLrep_depth3_train.vec')
-    createvecfile(ModelPath+'/depth3',DataPrefix+ '-test_small.vec',3,ModelPath + '/DLrep_depth3_test.vec')
-    createvecfile(ModelPath+'/depth1',DataPrefix+ '-train_small.vec',1,ModelPath + '/DLrep_depth1_train.vec')
-    createvecfile(ModelPath+'/depth1',DataPrefix+ '-test_small.vec',1,ModelPath + '/DLrep_depth1_test.vec')
+    createvecfile(ModelPath+'/depth3',DataPrefix+ '-train.vec',3,ModelPath + '/DLrep_depth3_train.vec')
+    createvecfile(ModelPath+'/depth3',DataPrefix+ '-test.vec',3,ModelPath + '/DLrep_depth3_test.vec')
+    createvecfile(ModelPath+'/depth1',DataPrefix+ '-train.vec',1,ModelPath + '/DLrep_depth1_train.vec')
+    createvecfile(ModelPath+'/depth1',DataPrefix+ '-test.vec',1,ModelPath + '/DLrep_depth1_test.vec')
 
     resbaseline = {}
     resshallow = {}
     resdeep = {}
 
     for task in range(5):
-        ListLabel = ReadLabelFile( DataPrefix + '-train_small.lab',task)
+        ListLabel = ReadLabelFile( DataPrefix + '-train.lab',task)
         Train_idx = SampleStratified(numpy.random,ListLabel,ClassifierTrainingSize)
         Folds_idx = SampleStratifiedFolds(list(numpy.asarray(ListLabel)[Train_idx]),FoldsNumber)
         resbaseline.update({task : []})
@@ -85,26 +89,26 @@ def evalMain( FoldsNumber, ClassifierTrainingSize, DataPrefix, ModelPath, Seed )
         resdeep.update({task : []})
         for idxfold,k in enumerate(Folds_idx):
             # Creating the index file
-            CreateIdxFile(list(numpy.asarray(Train_idx)[k]),DataPrefix + 'current_idx_train.idx')
+            CreateIdxFile(list(numpy.asarray(Train_idx)[k]),DataPrefix + '_current_idx_train.idx')
             # baseline
-            TrainingData, ValidationData = loadTrainDataset(task, DataPrefix+ '-train_small.lab', DataPrefix+ '-train_small.vec', DataPrefix + 'current_idx_train.idx')
+            TrainingData, ValidationData = loadTrainDataset(task, DataPrefix+ '-train.lab', DataPrefix+ '-train.vec', DataPrefix + '_current_idx_train.idx')
             best_classifier = TrainAndOptimizeClassifer(TrainingData, ValidationData, True)
-            TestData = loadTestDataset(task, DataPrefix+ '-test_small.lab', DataPrefix+ '-test_small.vec')
-            resbaseline[task] += [Classifier(best_classifier, TestData, DataPrefix + 'baseline_task_%s_fold_%s'%(task,idxfold))]
+            TestData = loadTestDataset(task, DataPrefix+ '-test.lab', DataPrefix+ '-test.vec')
+            resbaseline[task] += [Classifier(best_classifier, TestData, DataPrefix + '_baseline_task_%s_fold_%s'%(task,idxfold))]
             # Shallow
-            TrainingData, ValidationData = loadTrainDataset(task, DataPrefix+ '-train_small.lab', ModelPath + '/DLrep_depth1_train.vec', DataPrefix + 'current_idx_train.idx')
+            TrainingData, ValidationData = loadTrainDataset(task, DataPrefix+ '-train.lab', ModelPath + '/DLrep_depth1_train.vec', DataPrefix + '_current_idx_train.idx')
             best_classifier = TrainAndOptimizeClassifer(TrainingData, ValidationData, True)
-            TestData = loadTestDataset(task, DataPrefix+ '-test_small.lab', ModelPath + '/DLrep_depth1_test.vec')
-            resshallow[task] += [Classifier(best_classifier, TestData, DataPrefix + 'baseline_task_%s_fold_%s'%(task,idxfold))]
+            TestData = loadTestDataset(task, DataPrefix+ '-test.lab', ModelPath + '/DLrep_depth1_test.vec')
+            resshallow[task] += [Classifier(best_classifier, TestData, DataPrefix + '_shallow_task_%s_fold_%s'%(task,idxfold))]
             # Deep
-            TrainingData, ValidationData = loadTrainDataset(task, DataPrefix+ '-train_small.lab', ModelPath + '/DLrep_depth3_train.vec', DataPrefix + 'current_idx_train.idx')
+            TrainingData, ValidationData = loadTrainDataset(task, DataPrefix+ '-train.lab', ModelPath + '/DLrep_depth3_train.vec', DataPrefix + '_current_idx_train.idx')
             best_classifier = TrainAndOptimizeClassifer(TrainingData, ValidationData, True)
-            TestData = loadTestDataset(task, DataPrefix+ '-test_small.lab', ModelPath + '/DLrep_depth3_test.vec')
-            resdeep[task] += [Classifier(best_classifier, TestData, DataPrefix + 'baseline_task_%s_fold_%s'%(task,idxfold))]
+            TestData = loadTestDataset(task, DataPrefix+ '-test.lab', ModelPath + '/DLrep_depth3_test.vec')
+            resdeep[task] += [Classifier(best_classifier, TestData, DataPrefix + '_deep_task_%s_fold_%s'%(task,idxfold))]
 
     for i in range(5):
         print >> sys.stderr, 'baseline', numpy.mean(resbaseline[i])
-        print >> sys.stderr, 'shallow', numpy.mean(reshallow[i])
+        print >> sys.stderr, 'shallow', numpy.mean(resshallow[i])
         print >> sys.stderr, 'deep', numpy.mean(resdeep[i])
 
 if __name__ == '__main__':
