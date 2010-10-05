@@ -3,7 +3,7 @@ import sys
 
 import numpy
 
-from DARPAscript import OpenTableSDAEexp, createvecfile
+from exp_scripts.DARPAscript import OpenTableSDAEexp, createvecfile
 from ClassifierSmartMemory import TrainAndOptimizeClassifer, Classifier, loadTrainDataset, loadTestDataset
 
 def SampleStratified(rand,ListLabel,ClassifierTrainingSize):
