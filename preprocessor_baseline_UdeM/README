@@ -52,7 +52,8 @@ the DL source code necessitates other libraries. Please refer to
 -----------------------------------------------------------------
 
 If the above steps occurred without error, you should be able to
-generate the preprocessed data with line on the shell:
+generate the preprocessed data with line on the shell (beforehand you
+need to specify the path to your OpenTable db files in the script):
 
 sh ./script/preprocess-and-split-data.sh
 

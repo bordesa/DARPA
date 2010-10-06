@@ -3,7 +3,7 @@ set -e
 PROJECTROOT=`dirname $0`/..
 LIBLINEAR=$PROJECTROOT/lib/liblinear
 DATADIR=$PROJECTROOT
-DBDIR=/data/lisa5/DARPA/OpenTable/db
+DBDIR=/path/to/your/openTable/dbfiles
 
 # Generate the data (preprocessing and reducing the dictionary size to DICTSIZE)
 # and split it according to the index given in TrainRestaurantsIds-exemple.dat
