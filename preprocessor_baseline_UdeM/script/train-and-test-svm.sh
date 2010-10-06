@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 PROJECTROOT=`dirname $0`/..
-LIBLINEAR=$PROJECTROOT/lib/liblinear/python
+LIBLINEAR=$PROJECTROOT/src
 LAUNCHDIR=`pwd`
 
 # go to the script directory
