@@ -1,4 +1,4 @@
-import numpy, math, cPickle, sys
+import numpy, math, cPickle, sys, time
 from linearutil import *
 
 # 
@@ -224,10 +224,11 @@ if __name__ == "__main__":
     TestLabels=None
     if len(sys.argv) ==7:
         TestLabels=sys.argv[6]
-
+    tim = time.time()
     TrainingData, ValidationData = loadTrainDataset(TaskIndex, TrainLabels, TrainVectors, TrainIndices)
     best_classifier = TrainAndOptimizeClassifer(TrainingData, ValidationData, True)
         
     TestData = loadTestDataset(TaskIndex, TestLabels, TestVectors)
     Classifier(best_classifier, TestData, TestVectors.rpartition('/')[2].rpartition('.')[0]+'_task'+str(TaskIndex))
+    print >> sys.stderr, 'Total elapsed time :', time.time()-tim    
 
