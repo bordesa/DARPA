@@ -9,7 +9,7 @@ DBDIR=/data/lisa5/DARPA/OpenTable/db
 # and split it according to the index given in myTrainRestaurantsIds.dat
 # Note if DICTSIZE=0, the dictionary contains all the words
 DICTSIZE=5000
-python $PROJECTROOT/src/dbToBoW_DARPA.py $DATADIR/featDict.txt $DATADIR/preprocessed-opentable myTrainRestaurantsIds.dat $DICTSIZE $DBDIR/opentable.*.db
+python $PROJECTROOT/src/dbToBoW_DARPA.py $DATADIR/featDict.txt $DATADIR/preprocessed-opentable TrainRestaurantsIds-exemple.dat $DICTSIZE $DBDIR/opentable.*.db
 
 
 
