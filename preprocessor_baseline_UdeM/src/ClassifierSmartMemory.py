@@ -86,7 +86,6 @@ def TrainAndOptimizeClassifer(TrainingData, ValidationData, verbose):
             Cnew = Ccurrent * Cstepfactor
             if verbose: 
                 print >> sys.stderr, "\tREVERSE: Cstepfactor is now %f, Ccurrent remains %f, Cnew is now %f" % (Cstepfactor, Ccurrent, Cnew)
-
     allC = C_to_allstats.keys()
     allC.sort()
     if verbose: 
@@ -114,7 +113,7 @@ def Classifier(model, TestData, prefix):
     termed after the provided prefix.
     """
     # perform predictions
-    print >> sys.stderr, "Testing on %d ex"% len(TestData[1][1])   
+    print >> sys.stderr, "Testing on %d ex"% len(TestData[1][1])
     preds, acc, probas = predict_online(TestData[0], TestData[1], model , '-b 1')
     
     # compute rmse (1 if no test labels given) and save predictions
