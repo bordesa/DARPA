@@ -120,4 +120,4 @@ validated on the remaining ones from the training set, i.e. ~300k
 examples.  The 10,000 set selection and the folds creation meet BEP-v3
 specifications (Stratified sampling).  In the end, the averaged RMSE
 score over the 10 folds for each task, and each system
-(baseline,shallow,deep) is printedt.
+(baseline,shallow,deep) is printed.
