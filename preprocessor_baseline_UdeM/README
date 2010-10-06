@@ -44,7 +44,7 @@ Perform an additional code-generation step:
 
 sh ./script/gen-protobuf-code.sh
 
-the DL source code necessitates other libraries. Please refer to 
+the DL source code requires other libraries. Please refer to
 /DLmodel/README for more details.
 
 
