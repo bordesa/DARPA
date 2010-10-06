@@ -3,30 +3,32 @@ TEXT MODALITY PACKAGE
 Universite de Montreal - NetScale Team
 ----------------------------------------------------------------- 
 
+
 1. Overview
 ----------------------------------------------------------------- 
 
-This package proposes a complete pipeline from preprocessing, 
-unsupervised deep learning, supervised learning to kfold evaluation 
+This package proposes the complete pipeline from preprocessing,
+unsupervised deep learning, supervised learning to kfold evaluation
 for the text modality.
 
 The architecture of the package is the following:
 
-- src/     : python scripts used to preprocess the data, train 
-             the classifier and do the evaluation protocol.
-- lib/     : protobuf and liblinear library sources.
-- DLmodel/ : DL system source code, also in Save_Model/ you can 
-             find the hyperparameters configuration file used 
-             for the DL system and the saved model and representations
-             after training.
-- script/  : shell scripts to install the libraries, preprocess
+- src/     : contains python scripts to preprocess the data, train 
+             the classifier and run the evaluation protocol.
+- lib/     : contains protobuf and Liblinear library sources.
+- DLmodel/ : contains the source code of the DL system. In Save_Model/ is
+             located the hyperparameters configuration file required
+             by the DL system and are saved the DL models and 
+	     representations after training.
+- script/  : contains shell scripts to install the libraries, preprocess
              the data and run the evaluation protocol.
 
-This file details how to install the sentiment classifiers in this
-package and run the evaluation protocol. To do so, you will need first
-to install google protocol buffers and liblinear locally.  Scripts are 
-provided to configure and compile both of these libraries, and 
-instructions on how to compile them are in this document.
+This README details how to install this package and run the evaluation
+protocol. To do so, you will need first to install google protocol
+buffers and Liblinear locally.  Scripts are provided to configure and
+compile both of these libraries, and instructions on how to compile
+them are in this document.
+
 
 2. 3rd Party Libraries
 -----------------------------------------------------------------
@@ -42,8 +44,9 @@ Perform an additional code-generation step:
 
 sh ./script/gen-protobuf-code.sh
 
-the DL source code necessites other libraries. Please refer to 
+the DL source code necessitates other libraries. Please refer to 
 /DLmodel/README for more details.
+
 
 3.  Generating preprocessed data files
 -----------------------------------------------------------------
@@ -59,52 +62,61 @@ This script generates 5 files (in the package root):
   of the word in the whole database.
 - preprocessed-opentable-{train/test}.{vec/lab}: the train and test
   data files in the following format:
-     *.vec files are the preprocessed reviews written in a .libsvm 
-      fashion without the labels. Each line correponds to a review 
-      where each non-zero feature is indicated with 'feature_index:feature_value'
-     *.lab files are the labels. Each line is a review (corresponding 
-      to the .vec file) and each number is the label for the different 
-      tasks in the following order: Overall Food Ambience Service Noise.
+     *.vec files are the preprocessed reviews written in a LibSVM
+      fashion without the labels. Each line corresponds to a review
+      where each non-zero feature is indicated with
+      <feature_index>:<feature_value>.
+     *.lab files contain the labels. Each line corresponds to a review
+      of the .vec file. Each column displays labels for a given task
+      in the following order: Overall Food Ambiance Service Noise.
 
-Note: the test/train split is created using a list of restaurant Ids
-(in script/TrainRestaurantsIds-exemple.dat). The given exemple meets 
-the 30%/70% BEP-v3 recommendation. You can change it directly
-to define your own split. 
+Note: the train/test split is created using a list of restaurant IDs
+(in script/TrainRestaurantsIds-example.dat). The given example meets
+the 70%/30% BEP-v3 recommendation. Define an other split can be easily
+done by modifying script/TrainRestaurantsIds-example.dat.
 
-4.  Training (and testing) classifiers
+
+4.  Training (and testing) a single classifier
 -----------------------------------------------------------------
 
-We always train a logistic regression with the expected output value
-to have a continuous prediction. The metric used is the RMSE.
+The linear classifier, which is learnt with Liblinear package, is a
+standard a logistic regression outputting the expected rating (to
+output a continuous rating). The metric used is the RMSE.
 
 To train a classifier, simply run:
 sh ./script/train-and-test-svm.sh TASK TRAIN_VEC TRAIN_LAB TRAIN_IDX TEST_VEC TEST_LAB
 - TASK is the ID of the task from 0 to 4 (in the following order: Overall 
-  Food Ambience Service Noise)
-- TRAIN_IDX is the list of index corresponding to the training exemples for the 
-  classifier (the others are used for validation). An exemple of TRAIN_IDX file
-  is given: /script/ClassifierTrainIdxs-exemple.dat.
+  Food Ambiance Service Noise)
+- TRAIN_IDX is the list of index of the training set (i.e. TRAIN_VEC +
+  TRAIN_LAB)corresponding to the training examples for the classifier
+  (the others are used for validation). An example of TRAIN_IDX file
+  is given: /script/ClassifierTrainIdxs-example.dat.
 
-The script will perform a line search with 10 steps to find the best C for the validation error,
-and then will compute the test RMSE score.
+The script performs a line search with 10 steps to find the C value
+reaching the lowest validation error, and computes the test RMSE
+score with the corresponding model.
 
-For exemple, to train a classifier for the overall rating on the preprocessed files generated in 2., do:
-sh ./script/train-and-test-svm.sh 0 preprocessed-opentable-train.vec preprocessed-opentable-train.lab /script/ClassifierTrainIdxs-exemples.dat preprocessed-opentable-test.vec preprocessed-opentable-test.lab
+For example, to train a classifier for the 'overall rating' task on the
+preprocessed files generated in 2., do:
+sh ./script/train-and-test-svm.sh 0 preprocessed-opentable-train.vec preprocessed-opentable-train.lab /script/ClassifierTrainIdxs-example.dat preprocessed-opentable-test.vec preprocessed-opentable-test.lab
 
-5.  Run evaluation protocol
+
+5.  Running evaluation protocol
 -----------------------------------------------------------------
 
-To run the evaluation protocol you first need to create the preprocessed
-data. Then you can simply do:
+Running he whole evaluation protocol only requires the preprocessed
+data (see 3.). Then you can simply do:
 
 sh ./script/kfold-evaluation.sh
 
-the script will first train the DL system, using the hyperparameters
-defined in /DLmodel/Saved_Model/DARPA.conf, and create the 
-representations corresponding to the shallow and the deep system.
-For each task, it will do the 10-folds validation procedure over a set of
-10000 exemples (the classifier is trained over 1000 examples), using the 
-others training exemples for validation.
-Training set selection and folds creation meet BEP-v3 specifications.  
-It will finally print the averaged RMSE score over the 10 folds for each 
-task, and each system (baseline,shallow,deep).
+The script first trains the DL system, using the hyperparameters
+defined in /DLmodel/Saved_Model/DARPA.conf, and creates the
+representations corresponding to the 1-layer and 3-layers system (they
+are stored in DLmodel/Save_Model/).  Then, for each task, it runs the
+10-folds cross- validation procedure over a set of 1,0000 examples
+(the classifier being trained on 1,000 examples each time and
+validated on the remaining ones from the training set, i.e. ~300k
+examples.  The 10,000 set selection and the folds creation meet BEP-v3
+specifications (Stratified sampling).  In the end, the averaged RMSE
+score over the 10 folds for each task, and each system
+(baseline,shallow,deep) is printedt.
