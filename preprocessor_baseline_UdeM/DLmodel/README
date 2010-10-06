@@ -24,8 +24,6 @@ http://deeplearning.net/software/theano/install.html
 
 The scripts also require python >= 2.5 and scipy >= 0.7.
 
-Finally, you need to add the DeepANN folder to your PYTHONPATH.
-
 
 3. Deep Learning Algorithm 
 -----------------------------------------------------------------
