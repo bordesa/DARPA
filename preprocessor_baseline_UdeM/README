@@ -1,22 +1,32 @@
 ----------------------------------------------------------------- 
-TEXT PREPROCESSOR AND BASELINE CLASSIFIER 
+TEXT MODALITY PACKAGE 
 Universite de Montreal - NetScale Team
 ----------------------------------------------------------------- 
-
-Note: this package is highly inspired by the package released by
-Stanford team in early July 2010. Major changes are a slightly more
-advanced text preprocessing and the replacement of libsvm by liblinear
-(faster).
-
 
 1. Overview
 ----------------------------------------------------------------- 
 
+This package proposes a complete pipeline from preprocessing, 
+unsupervised deep learning, supervised learning to kfold evaluation 
+for the text modality.
+
+The architecture of the package is the following:
+
+- src/     : python scripts used to preprocess the data, train 
+             the classifier and do the evaluation protocol.
+- lib/     : protobuf and liblinear library sources.
+- DLmodel/ : DL system source code, also in Save_Model/ you can 
+             find the hyperparameters configuration file used 
+             for the DL system and the saved model and representations
+             after training.
+- script/  : shell scripts to install the libraries, preprocess
+             the data and run the evaluation protocol.
+
 This file details how to install the sentiment classifiers in this
-package.  To do so, you will need to install google protocol buffers
-and liblinear locally.  Scripts are provided to configure and compile
-both of these libraries, and instructions on how to compile them are
-found in this document.
+package and run the evaluation protocol. To do so, you will need first
+to install google protocol buffers and liblinear locally.  Scripts are 
+provided to configure and compile both of these libraries, and 
+instructions on how to compile them are in this document.
 
 2. 3rd Party Libraries
 -----------------------------------------------------------------
@@ -32,6 +42,9 @@ Perform an additional code-generation step:
 
 sh ./script/gen-protobuf-code.sh
 
+the DL source code necessites other libraries. Please refer to 
+/DLmodel/README for more details.
+
 3.  Generating preprocessed data files
 -----------------------------------------------------------------
 
@@ -40,44 +53,58 @@ generate the preprocessed data with line on the shell:
 
 sh ./script/preprocess-and-split-data.sh
 
-You must edit the constants in this script to specify the location of
-the data.  It also allows you to control the train/test split, and the
-size of the BOW dictionary (Note that if you set the size of the
-vocabulary to 0 you will use all the terms -- no filtering).
+This script generates 5 files (in the package root):
+- featDict.txt: the features dictionary. The word on the n-th line 
+  corresponds to the feature n. The 2nd column gives the word count 
+  of the word in the whole database.
+- preprocessed-opentable-{train/test}.{vec/lab}: the train and test
+  data files in the following format:
+     *.vec files are the preprocessed reviews written in a .libsvm 
+      fashion without the labels. Each line correponds to a review 
+      where each non-zero feature is indicated with 'feature_index:feature_value'
+     *.lab files are the labels. Each line is a review (corresponding 
+      to the .vec file) and each number is the label for the different 
+      tasks in the following order: Overall Food Ambience Service Noise.
 
-This script generates 4 files (in the package root):
-- testDict.txt: the features dictionary. The word on line corresponds
-  to the feature n. The 2nd column gives the word count of the word in
-  the whole database.
-- testData.feat: the whole OpenTable data preprocessed and written in
-  libsvm/svmlight format. The default encoding is binary based on
-  presence/absence of words. If one wants to use word counts instead,
-  please comment line 119 of dbToBow.py and uncomment line 121.
-- {train/test}.libsvm: a split of the previous file according to dimensions
-  given in the script.
+Note: the test/train split is created using a list of restaurant Ids
+(in script/TrainRestaurantsIds-exemple.dat). The given exemple meets 
+the 30%/70% BEP-v3 recommendation. You can change it directly
+to define your own split. 
 
-Remark: there is an option in the script (see included comments) which
-allows to generate files displaying the actual text of the reviews
-(after preprocessing and filtering) instead the BoW written in
-libsvm/svmlight format.
-
-
-3.  Training (and testing) classifiers
+4.  Training (and testing) classifiers
 -----------------------------------------------------------------
 
-We always train a multiclass SVM classifier (using Crammer & Singer
-formulation) with linear kernel (see doc in lib/liblinear for details).
+We always train a logistic regression with the expected output value
+to have a continuous prediction. The metric used is the RMSE.
 
 To train a classifier, simply run:
-sh ./script/train-and-test-svm.sh TRAIN_FILE TEST_FILE OUTPUT_FILE
+sh ./script/train-and-test-svm.sh TASK TRAIN_VEC TRAIN_LAB TRAIN_IDX TEST_VEC TEST_LAB
+- TASK is the ID of the task from 0 to 4 (in the following order: Overall 
+  Food Ambience Service Noise)
+- TRAIN_IDX is the list of index corresponding to the training exemples for the 
+  classifier (the others are used for validation). An exemple of TRAIN_IDX file
+  is given: /script/ClassifierTrainIdxs-exemple.dat.
 
-For example, to train a classifier on the preprocessed files generated in 2., do:
-sh ./script/train-and-test-svm.sh train.libsvm test.libsvm output
+The script will perform a line search with 10 steps to find the best C for the validation error,
+and then will compute the test RMSE score.
 
-In the script, you can specify the amount of labeled data the
-classifier can pick among TRAIN_FILE (default 100 examples), the
-number of train/test runs to perform (default 50) and the
-regularization parameter C (default 0.01).
+For exemple, to train a classifier for the overall rating on the preprocessed files generated in 2., do:
+sh ./script/train-and-test-svm.sh 0 preprocessed-opentable-train.vec preprocessed-opentable-train.lab /script/ClassifierTrainIdxs-exemples.dat preprocessed-opentable-test.vec preprocessed-opentable-test.lab
 
+5.  Run evaluation protocol
+-----------------------------------------------------------------
 
+To run the evaluation protocol you first need to create the preprocessed
+data. Then you can simply do:
 
+sh ./script/kfold-evaluation.sh
+
+the script will first train the DL system, using the hyperparameters
+defined in /DLmodel/Saved_Model/DARPA.conf, and create the 
+representations corresponding to the shallow and the deep system.
+For each task, it will do the 10-folds validation procedure over a set of
+10000 exemples (the classifier is trained over 1000 examples), using the 
+others training exemples for validation.
+Training set selection and folds creation meet BEP-v3 specifications.  
+It will finally print the averaged RMSE score over the 10 folds for each 
+task, and each system (baseline,shallow,deep).
