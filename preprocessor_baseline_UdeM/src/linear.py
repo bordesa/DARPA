@@ -13,7 +13,10 @@ else:
 	if sys.platform == 'win32':
 		liblinear = CDLL('../windows/liblinear.dll')
 	else:
-		liblinear = CDLL('../lib/liblinear/liblinear.so.1')
+		try:
+			liblinear = CDLL('../lib/liblinear/liblinear.so.1')
+		except OSError:
+			liblinear = CDLL('lib/liblinear/liblinear.so.1')
 
 # Construct constants
 SOLVER_TYPE = ['L2R_LR', 'L2R_L2LOSS_SVC_DUAL', 'L2R_L2LOSS_SVC', 'L2R_L1LOSS_SVC_DUAL',\

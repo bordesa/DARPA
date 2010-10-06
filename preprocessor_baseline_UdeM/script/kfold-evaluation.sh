@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
-PROJECTROOT=`dirname $0`/..
+LAUNCHDIR=`pwd`
+cd `dirname $0`
+PROJECTROOT=..
 DATADIR=$PROJECTROOT
 
 export PYTHONPATH=$PROJECTROOT/DLmodel:$PYTHONPATH
@@ -11,5 +13,5 @@ SEED=777
 
 THEANO_FLAGS=device=gpu,floatX=float32 python $PROJECTROOT/src/DARPAEvaluation.py $KFOLD $TRAINSIZE $PROJECTROOT/preprocessed-opentable $PROJECTROOT/DLmodel/Saved_Model/ $SEED
 
-
+cd $LAUNCHDIR
 
