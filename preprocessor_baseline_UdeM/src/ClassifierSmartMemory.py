@@ -230,5 +230,5 @@ if __name__ == "__main__":
         
     TestData = loadTestDataset(TaskIndex, TestLabels, TestVectors)
     Classifier(best_classifier, TestData, TestVectors.rpartition('/')[2].rpartition('.')[0]+'_task'+str(TaskIndex))
-    print >> sys.stderr, 'Total elapsed time :', time.time()-tim    
+    print >> sys.stderr, 'Total elapsed time :', time.time()-tim, 'seconds'
 
