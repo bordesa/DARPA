@@ -18,7 +18,7 @@ The architecture of the package is the following:
 - lib/     : contains protobuf and Liblinear library sources.
 - DLmodel/ : contains the source code of the DL system. In Save_Model/ is
              located the hyperparameters configuration file required
-             by the DL system and are saved the DL models and 
+             by the DL system (DARPA.conf)and are saved the DL models and 
 	     representations after training.
 - script/  : contains shell scripts to install the libraries, preprocess
              the data and run the evaluation protocol.
