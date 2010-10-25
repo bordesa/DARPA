@@ -105,11 +105,23 @@ def evalMain( FoldsNumber, ClassifierTrainingSize, DataPrefix, ModelPath, Seed )
             best_classifier = TrainAndOptimizeClassifer(TrainingData, ValidationData, True)
             TestData = loadTestDataset(task, DataPrefix+ '-test.lab', ModelPath + '/DLrep_depth3_test.vec')
             resdeep[task] += [Classifier(best_classifier, TestData, DataPrefix + '_deep_task_%s_fold_%s'%(task,idxfold))]
+            
+            f = open(ModelPath + 'kfold_results_dictionnaries.pkl','w')
+            cPickle.dump(resbaseline,f,-1)
+            cPickle.dump(resshallow,f,-1)
+            cPickle.dump(resdeep,f,-1)
+            f.close()
 
     for i in range(5):
-        print >> sys.stderr, 'baseline', numpy.mean(resbaseline[i])
-        print >> sys.stderr, 'shallow', numpy.mean(resshallow[i])
-        print >> sys.stderr, 'deep', numpy.mean(resdeep[i])
+        print >> sys.stderr, 'baseline', numpy.mean(resbaseline[i]), " +/- ", numpy.std(resbaseline[i])
+        print >> sys.stderr, 'shallow', numpy.mean(resshallow[i]), " +/- ", numpy.std(resshallow[i])
+        print >> sys.stderr, 'deep', numpy.mean(resdeep[i]), " +/- ", numpy.std(resdeep[i])
+
+    f = open(ModelPath + 'kfold_results_dictionnaries.pkl','w')
+    cPickle.dump(resbaseline,f,-1)
+    cPickle.dump(resshallow,f,-1)
+    cPickle.dump(resdeep,f,-1)
+    f.close()
 
 if __name__ == '__main__':
     if len(sys.argv) < 6:
