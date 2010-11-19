@@ -1,0 +1,158 @@
+--------------------------------------------------------------------------------------------
+TEXT MODALITY PACKAGE 
+Universite de Montreal - NetScale Team
+README2: README file directly intended to the ET to ease the integration in the test harness
+--------------------------------------------------------------------------------------------
+
+	Important Notice:
+
+In the file 'DARPA/mid-phase1-text-modality-NetScale/src/DARPAEvaluation.py', 
+the function evalMain() runs a test-harness similarly as what is
+specified in the BEPv4 and using all the function described below.
+This provides a good idea of the structure of our package and runs in
+sequence all the step one might need to run the evaluation. We
+strongly them encourage to look at this file.
+
+
+
+        1. *Unsupervised Training: *
+
+To train our DL system, one must call the function: 
+   OpenTableSDAEexp(ConfigFile = None, SavePath = '.')
+located in the file 'DARPA/mid-phase1-text-modality-NetScale/DLmodel/exp_scripts/DARPAscript.py'.
+
+-> Inputs:
+
+   **Configfile: path to the hyperparameters configuration file (named
+    'DARPA.conf'). The default configuration file is located in the
+    directory '/DARPA/mid-phase1-text-modality-NetScale/DLmodel/Saved_Model/'.
+    If it is None, the function assumes the file is in the current directory.
+   **SavePath: path where one wants to save the parameters of our DL
+     model after unsupervised training.
+
+-> Training data file format:
+
+   The preprocessor outputs 4 files: 'preprocessed-opentable-{train/test}.{vec/lab}'. 
+   For instructions on how-to preprocess the data and create these files, please refer
+   to 'DARPA/mid-phase1-text-modality-NetScale/README' - section 3.
+
+   They have the following format:
+    *.vec files contain the preprocessed review texts written in a
+     LibSVM format without the labels. Each line corresponds to a
+     review in which each non-zero feature is indicated with
+     <feature_index>:<feature_value>.
+    *.lab files contain the labels. Each line corresponds to a review text
+     of the .vec file and each column displays labels for a given task in
+     the following order: Overall Food Ambiance Service Noise.
+
+   The DL system takes the file 'preprocessed-opentable-train.vec' file
+   as input. This is what is specified in the 'DARPA.conf' file.
+    
+-> Other parameters of the unsupervised training function:
+   They are all specified and commented in the 'DARPA.conf' file.
+
+-> Dependencies and 3rd party libraries:
+
+   **3rd party libraries are specified in
+     'DARPA/mid-phase1-text-modality-NetScale/DLmodel/README'.
+   **Beware: The 'DARPA/mid-phase1-text-modality-NetScale/DLmodel' 
+     folder must be in the PYTHONPATH as well as the Theano folder.
+
+
+
+        2. *Transforming Test Data: *
+
+To transform the test data using to the DL system, one must call the function:
+   createvecfile(PathLoad,PathData,depth,OutFile,BATCH_MAX = 250)
+located in the file 'DARPA/mid-phase1-text-modality-NetScale/DLmodel/exp_scripts/DARPAscript.py'.
+
+-> Inputs:
+
+   **PathLoad: path where the DL system has been saved. It is directly
+     related to the SavePath of the previous function. Indeed:
+     --the deep model (3 layers) is saved in SavePath+'/depth3'.
+     --the shallow model (1 layer) is saved in SavePath+'/depth1'.
+   **PathData: path to the pre-processed data file ('.vec' format)
+     which we want to transform.
+   **depth: 1 for the shallow system, 3 for the deep one.
+   **Outfile: path where the transformed file (in a '.vec' format) will be created 
+     (the initial order of the examples is preserved).
+
+-> Outputs:
+   The data is created in the '.vec' file format.
+
+-> Dependencies and 3rd party libraries:
+   Same as the previous function.
+
+
+
+        3. *Training the SLC: *
+
+To train the SLC, one must call the function:
+   TrainAndOptimizeClassifer(TrainingData, ValidationData, verbose)
+located in the file 'DARPA/preprocessor_baseline_UdeM/src/ClassifierSmartMemory.py'.
+
+-> Inputs:
+
+   **TrainingData/ValidationData: data stored as a list
+     of two elements:
+      --TrainingData[0] and ValidationData[0] are the list of labels.
+      --TrainingData[1] and ValidationData[1] are a list of
+        dictionaries.  Each dictionary corresponds to one review.
+        The keys are the indexes of the features and the values are
+        the features values.
+    						
+  **Loading data: function load{Train/Test}Dataset() in the same file
+    allows to automatically load .vec and .lab files and convert them in
+    the right format for the SLC. All functions are commented.
+
+
+-> The function performs a line search (10 iterations) to find the
+  best regularization hyper-parameter with respect to the validation
+  RMSE score. LibLinear is used as SLC.
+
+-> Output:
+   The function returns the LibLinear python model instance corresponding
+   to the selected model. It is possible to save the model instance
+   using the save_model function and load it using the load_model
+   function from DARPA/preprocessor_baseline_UdeM/src/linearutil.py.
+   However, in our default setup, the model is not saved to a file but
+   tested right after training.
+
+
+-> Dependencies and 3rd party libraries:
+
+   **'DARPA/preprocessor_baseline_UdeM/src/' should be in your PYTHONPATH.
+   **Liblinear should be installed (Please refer to
+     'DARPA/mid-phase1-text-modality-NetScale/README' - Section 2.)
+
+
+
+        4. *Testing the SLC: *
+
+To test the SLC, one must call the function:
+   Classifier(model, TestData, prefix)
+located in the file 'DARPA/preprocessor_baseline_UdeM/src/ClassifierSmartMemory.py'.
+
+-> Inputs:
+
+   **model: the LibLinear python model instance (outputted of the previous function).
+   **TestData: the test data we want to evaluate our classifier on (in the same format than TrainingData or ValidationData).
+   **prefix: name prefix for the predictions file.
+
+-> The code computes and return the RMSE score on the test data, and
+   saves the predictions in a file.
+
+
+
+   	5. *Kfold cross-validating: *
+
+Utilities to perform kfold-cross validation are located in the file
+'DARPA/mid-phase1-text-modality-NetScale/src/DARPAEvaluation.py'.  In
+particular, the function SampleStratified() and
+SampleStratifiedFolds() are designed to create the folds and save
+their corresponding to files. Hence, it is possible to use the same
+folds for different runs. Once again, how to use those, and how to run
+a k-fold cross-validation with our code is illustrated in the
+evalMain() function.
+
