@@ -131,9 +131,9 @@ def createvecfile(PathLoad,PathData,depth,OutFile,BATCH_MAX = 500):
 
     for i in range(NB_BATCHS):
         if i < NB_BATCHS-1:
-            rep = func(full_train[BATCH_MAX*i:BATCH_MAX*(i+1),:].toarray())[0]
+            rep = func(numpy.asarray(full_train[BATCH_MAX*i:BATCH_MAX*(i+1),:].toarray(),dtype=theano.config.floatX))[0]
         else:
-            rep = func(full_train[BATCH_MAX*i:,:].toarray())[0]
+            rep = func(numpy.asarray(full_train[BATCH_MAX*i:,:].toarray(),dtype=theano.config.floatX))[0]
         textr = ''
         for l in range(rep.shape[0]):
             idx = rep[l,:].nonzero()[0]
